@@ -37,12 +37,18 @@ def keep_segments(silences, duration, padding=0.1): # get the inverted segment, 
         segments.append((round(cursor, 3), round(duration, 3)))
     return segments
 
-def cut_video(path, segments, out_path): # cutting the video
-    expr = "+".join(f"between(t,{s:.3f},{e:.3f})" for s, e in segments)
+def cut_video(path, segments, out_path):
+    """Write a new video that contains only the given segments."""
+    parts = []
+    for i, (start, end) in enumerate(segments):
+        parts.append(f"[0:v]trim=start={start:.3f}:end={end:.3f},setpts=PTS-STARTPTS[v{i}]")
+        parts.append(f"[0:a]atrim=start={start:.3f}:end={end:.3f},asetpts=PTS-STARTPTS[a{i}]")
+    joined = "".join(f"[v{i}][a{i}]" for i in range(len(segments)))
+    parts.append(f"{joined}concat=n={len(segments)}:v=1:a=1[outv][outa]")
+
     subprocess.run(
-        ["ffmpeg", "-y", "hide_banner", "-loglevel", "error", "-i", path,
-         "-vf", f"select='{expr}',setpts=N/FRAME_RATE/TB",
-         "-af", f"select='{expr}',asetpts=N/SR/TB",
-         out_path],
-         check=True,
+        ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", path,
+         "-filter_complex", ";".join(parts),
+         "-map", "[outv]", "-map", "[outa]", out_path],
+        check=True,
     )
