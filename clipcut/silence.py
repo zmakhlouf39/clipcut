@@ -1,25 +1,38 @@
 """Finds silent parts in a video and cuts them off"""
 import re    # regex handling
 import subprocess # cli :)
+import tempfile
+from pathlib import Path
 
-def get_duration(path): 
+def get_duration(path_video): 
     # Return the length of a media file in seconds
     result = subprocess.run(
         ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of",
-         "default=noprint_wrappers=1:nokey=1", path],
+         "default=noprint_wrappers=1:nokey=1", path_video],
         capture_output=True, text=True, check=True,
     )
     return float(result.stdout.strip())
 
-def detect_silences(path, duration, noise_db=-30, min_silence=0.5):
-    # Return a list of (start, end) times where the audio is silent.
-    result = subprocess.run(
-        ["ffmpeg", "-hide_banner", "-i", path, "-af", f"silencedetect=noise={noise_db}dB:d={min_silence}",
-         "-f", "null", "-"],
-         capture_output=True, text=True,  
-    )
-    starts = [float(x) for x in re.findall(r"silence_start: (-?[\d.]+)", result.stderr)]
-    ends = [float(x) for x in re.findall(r"silence_end: ([\d.]+)", result.stderr)]
+def detect_silences(path_video, duration, noise_db=-30, min_silence=0.5):
+    #tmp audio file, we dont want to get prompted by an overwite every time
+    with tempfile.TemporaryDirectory() as tmp:
+        wav = Path(tmp) / "audio.wav"
+    #running the silence detection on an audio file is much faster actually !!
+        subprocess.run(
+            ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
+            "-i", path_video, "-vn", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le",
+            str(wav)],
+            check = True,
+        )
+        result = subprocess.run(
+            ["ffmpeg", "-hide_banner", "-i", str(wav), "-af",
+            f"silencedetect=noise={noise_db}dB:d={min_silence}",
+            "-f", "null", "-"],
+            capture_output=True, text=True,  
+        ).stderr
+    # Return a list of (start, end) times where the audio is silent. 
+    starts = [float(x) for x in re.findall(r"silence_start: (-?[\d.]+)", result)]
+    ends = [float(x) for x in re.findall(r"silence_end: ([\d.]+)", result)]
 
     if len(starts) > len(ends): # the video ends while still silent
         ends.append(duration)
@@ -37,7 +50,7 @@ def keep_segments(silences, duration, padding=0.1): # get the inverted segment, 
         segments.append((round(cursor, 3), round(duration, 3)))
     return segments
 
-def cut_video(path, segments, out_path):
+def cut_video(path_video, segments, out_path_video):
     """Write a new video that contains only the given segments."""
     parts = []
     for i, (start, end) in enumerate(segments):
@@ -47,8 +60,10 @@ def cut_video(path, segments, out_path):
     parts.append(f"{joined}concat=n={len(segments)}:v=1:a=1[outv][outa]")
 
     subprocess.run(
-        ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", path,
+        ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", path_video,
          "-filter_complex", ";".join(parts),
-         "-map", "[outv]", "-map", "[outa]", out_path],
+         "-map", "[outv]", "-map", "[outa]", 
+         "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
+         "-c:a", "aac", out_path_video],
         check=True,
     )

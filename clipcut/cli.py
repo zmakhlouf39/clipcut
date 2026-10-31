@@ -19,11 +19,11 @@ def main(argv=None):
     # split path into main file and (to be discarded) extension 
     base, _ = os.path.split(args.input)
     output = args.output or f"{base}_cut.mp4"
-
+    
     duration = get_duration(args.input)
     silences = detect_silences(args.input, duration, args.noise, args.min_silence)
     segments = keep_segments(silences, duration, args.padding)
-
     cut_video(args.input, segments, output)
+
     print(f"Cut {len(silences)} silence: {duration:.1f}s -> {get_duration(output):.1f}s")
     print(f"Saved {output}")
