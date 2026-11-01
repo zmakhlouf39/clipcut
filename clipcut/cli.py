@@ -5,7 +5,7 @@ import shutil
 import sys
 
 from clipcut.silence import get_duration, detect_silences ,keep_segments, cut_video
-from clipcut.captions import transcribe, write_srt, burn_subtitles
+from clipcut.captions import transcribe, write_srt
 
 def build_parser():
     
@@ -17,7 +17,7 @@ def build_parser():
     
     # arguments
     p.add_argument("input", help="video file to process")
-    p.add_argument("-o", "--output", help="output file(default: <input>_clipcut.mp4)")
+    p.add_argument("-o", "--output", help="output file(default: <input>_cut.mp4)")
     p.add_argument("--noise", type=float, default=-30, help="silence level in dB (default -30)")
     p.add_argument("--min-silence", type=float, default=0.5, help="shortest pause to cut, in seconds")
     p.add_argument("--padding", type=float, default=0.1, help="seconds of air kept around speech")
@@ -36,8 +36,6 @@ def main(argv=None):
         sys.exit("Error: ffmpeg is not installed or not on PATH.")
     if not os.path.isfile(args.input):
         sys.exit(f"Error: file not found: {args.input}")
-    if args.burn:
-        args.captions = True
 
 
     # split path into main file and (to be discarded) extension 

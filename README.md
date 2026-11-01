@@ -3,7 +3,12 @@
 Command-line tool that turns raw talking-head footage into a tight short-form video.
 It finds the silent pauses in a recording and cuts them out, keeping a little air around each sentence so the edit still feels natural.
 
-> **Status:** early stage. Silence removal works. Automatic captions are planned (`clipcut/captions.py` is still empty).
+> **Status:** early stage. 
+- ✅ Silence removal. 
+- ✅ transcribtion.
+- ✅ srt file creation.
+- ⌛ Automatic captions next.
+- GUI
 
 ## How it works
 
@@ -60,7 +65,10 @@ python -m clipcut talk.mp4 -o short.mp4
 | `--noise` | `-30` | Silence threshold in dB. Raise it (for example `-25`) if quiet speech gets cut. Lower it (for example `-35`) if pauses are not removed. |
 | `--min-silence` | `0.5` | Shortest pause, in seconds, that gets cut |
 | `--padding` | `0.1` | Seconds of audio and video kept on each side of speech |
-
+| `--no_cut` | / | Skip silence removal |
+| `--captions` | / | Write an .srt caption file |
+| `--lang` | None | Speech language, e.g. en, fr, ar (default: auto) |
+| `--model` | small | Whisper model: tiny, base, small, medium |
 When it finishes, it prints how much was removed:
 
 ```
@@ -77,7 +85,7 @@ clipcut/
 │   ├── __main__.py     # enables `python -m clipcut`
 │   ├── cli.py          # argument parsing and the pipeline
 │   ├── silence.py      # probing, silence detection, segment logic, cutting
-│   └── captions.py     # planned: transcription and subtitles
+│   └── captions.py     # transcription and subtitles
 ├── tests/
 │   ├── test_silence.py
 │   └── test_captions.py
@@ -95,13 +103,6 @@ pytest
 
 The silence tests generate small test videos with FFmpeg, so FFmpeg must be installed first.
 
-## Roadmap
-
-- [x] Silence detection on extracted audio
-- [x] Cutting segments with a single FFmpeg filter graph
-- [ ] Captions with faster-whisper (`.srt` output)
-- [ ] Burned-in subtitles
-- [ ] Styled, word-by-word captions
 
 ## License
 
