@@ -1,4 +1,4 @@
-"""Transcribe speech and write / burn captions."""
+"""Transcribe speech and write"""
 import os
 import subprocess
 
