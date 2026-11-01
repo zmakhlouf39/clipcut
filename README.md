@@ -69,6 +69,7 @@ python -m clipcut talk.mp4 -o short.mp4
 | `--captions` | / | Write an .srt caption file |
 | `--lang` | None | Speech language, e.g. en, fr, ar (default: auto) |
 | `--model` | small | Whisper model: tiny, base, small, medium |
+
 When it finishes, it prints how much was removed:
 
 ```
