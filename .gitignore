@@ -223,5 +223,6 @@ __marimo__/
 *.mp4
 *.srt
 *.wav
+*.ass
 
 !samples/Lizzie.wav

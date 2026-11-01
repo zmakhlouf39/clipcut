@@ -3,9 +3,11 @@ import argparse
 import os
 import shutil
 import sys
+from pathlib import Path
 
 from clipcut.silence import get_duration, detect_silences ,keep_segments, cut_video
-from clipcut.captions import transcribe, write_srt
+from clipcut.captions import transcribe, write_srt, all_words, burn_ass
+from clipcut.styled import Style, build_ass, group_words, get_resolution
 
 def build_parser():
     
@@ -25,6 +27,12 @@ def build_parser():
     p.add_argument("--captions", action="store_true", help="write an .srt caption file")
     p.add_argument("--lang", default=None, help="speech language, e.g. en, fr, ar (default: auto)")
     p.add_argument("--model", default="small", help="whisper model: tiny, base, small, medium")
+    p.add_argument("--words", type=int, default=1, help="words per caption")
+    p.add_argument("--font", default="Arial")
+    p.add_argument("--size", type=int, default=80)
+    p.add_argument("--color", default="FFFFFF", help="RRGGBB")
+    p.add_argument("--animation", default="pop", choices=["none", "fade", "pop", "bounce"])
+    p.add_argument("--position", default="middle", choices=["top", "middle", "bottom"])
     return p
 
 
@@ -56,10 +64,17 @@ def main(argv=None):
 
     if args.captions:
         print("Transcribing (the first run downloads the model, about 500 MB)...")
-        captions, language = transcribe(current, args.model, args.lang)
-        
+        captions, language = transcribe(current, args.model, args.lang, words=True)
         if not captions:
-            sys.exit("Error: no speech found, so there are not captions to write.")
+            sys.exit("Error: no speech found, no captions to write.")
+        
+        style = Style(font=args.font, size=args.size, color=args.color, words_per_caption=args.words, animation=args.animation, position=args.position)
+        words = all_words(captions)
+        w, h = get_resolution(output)
+        
+        ass_path = os.path.splitext(output)[0] + ".ass"
+        Path(ass_path).write_text(build_ass(group_words(words , style.words_per_caption), style, w, h), encoding="utf-8")
+        burn_ass(output, ass_path, os.path.splitext(output)[0] + "_captioned.mp4")
         
         srt_path = os.path.splitext(output)[0] + ".srt"    
         write_srt(captions, srt_path)

@@ -7,8 +7,8 @@ It finds the silent pauses in a recording and cuts them out, keeping a little ai
 - ✅ Silence removal. 
 - ✅ transcribtion.
 - ✅ srt file creation.
-- ⌛ Automatic captions next.
-- GUI
+- ✅ Automatic captions next.
+- ⌛GUI
 
 ## How it works
 
