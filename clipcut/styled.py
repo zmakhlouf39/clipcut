@@ -67,9 +67,9 @@ def build_ass(captions, style, width, height):
     """Return the .ass file"""
 
     if style.animation not in ANIMATIONS:
-        raise ValueError(f"unkown animation {style.animation!r}, pick one of {list(ANIMATIONS)}")
+        raise ValueError(f"unknown animation {style.animation!r}, pick one of {list(ANIMATIONS)}")
     if style.position not in POSITIONS:
-        raise ValueError(f"unkown position {style.position!r}, pick one of {list(POSITIONS)}")
+        raise ValueError(f"unknown position {style.position!r}, pick one of {list(POSITIONS)}")
     margin_v = height // 8
     header = (
         "[Script Info]\n"
@@ -80,7 +80,7 @@ def build_ass(captions, style, width, height):
         "[V4+ Styles]\n"
         "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, "
         "BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, "
-        "BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Enconding\n"
+        "BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n"
         f"Style: Default,{style.font},{style.size},{ass_color(style.color)},&H000000FF,"
         f"{ass_color(style.outline_color)},&H00000000,1,0,0,0,100,100,0,0,1,"
         f"{style.outline},0,{POSITIONS[style.position]},40,40,{margin_v},1\n"
