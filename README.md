@@ -1,13 +1,13 @@
 # clipcut
 
-Command-line tool that turns raw talking-head footage into a tight short-form video.
-It finds the silent pauses in a recording and cuts them out, keeping a little air around each sentence so the edit still feels natural.
+Command-line tool that turns raw talking-head footage into a cut short-form video.
+It finds the silent pauses in a recording and cuts them out, and applies custom captions.
 
 > **Status:** early stage. 
 - ✅ Silence removal. 
 - ✅ transcribtion.
 - ✅ srt file creation.
-- ✅ Automatic captions next.
+- ✅ Automatic captions.
 - ⌛GUI
 
 ## How it works
@@ -70,6 +70,17 @@ python -m clipcut talk.mp4 -o short.mp4
 | `--lang` | None | Speech language, e.g. en, fr, ar (default: auto) |
 | `--model` | small | Whisper model: tiny, base, small, medium |
 
+### Caption options
+| Option | Default | What it does |
+| --- | --- | --- |
+| `words` | 1 | words per caption |
+| `font` | Arial | caption font |
+| `size` | 80 | caption size |
+| `color` | white (FFFFFF) | caption color (in hex) |
+| `animation` | pop | caption animation (none, fade, pop, bounce) |
+| `position` | middle | caption position (top, middle, bottom) |
+| `remove_punctuation` | False | Keeps or remove punctuation |
+
 When it finishes, it prints how much was removed:
 
 ```
@@ -86,10 +97,12 @@ clipcut/
 │   ├── __main__.py     # enables `python -m clipcut`
 │   ├── cli.py          # argument parsing and the pipeline
 │   ├── silence.py      # probing, silence detection, segment logic, cutting
-│   └── captions.py     # transcription and subtitles
+│   └── captions.py     # transcription
+│   └── styled.py       # caption customization
 ├── tests/
 │   ├── test_silence.py
 │   └── test_captions.py
+│   └── test_styled.py
 ├── requirements.txt
 └── LICENSE
 ```

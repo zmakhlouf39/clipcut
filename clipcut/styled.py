@@ -1,6 +1,7 @@
 """Customizable word-by-word caption, written as an .ass subtitle file."""
 
 import subprocess
+import os
 from dataclasses import dataclass
 
 
@@ -17,7 +18,7 @@ class Style:
     animation: str = "pop"
     position: str = "middle"    #"top", "middle" or "bottom"
     uppercase: bool = True
-
+    remove_punctuation: bool = False
 ANIMATIONS = {
     "none": "",
     "fade": r"{\fad(120,0)}",
@@ -27,28 +28,36 @@ ANIMATIONS = {
 
 POSITIONS = {"bottom": 2, "middle": 5, "top": 8}
 
+PUNCTUATION = ",.!?;:…"
+
 #--------------------------------helpers--------------------------------------------
 
 def ass_time(seconds):
     """Turn 75.5 into '0:01:15.50' (ASS uses centiseconds)."""
     cs = round(seconds * 100)
-    hours, cs = divmod(cs, 360_000)
+    hours, cs = divmod(cs, 360_000) 
     minutes, cs = divmod(cs, 6_000)
     secs, cs = divmod(cs, 100)
-    return f"{hours}:{minutes:02}:{secs:02}.{cs:02}"
+    return f"{hours}:{(minutes):02}:{(secs):02}.{cs:02}"
 
 def ass_color(rrggbb):
     """ASS writes colors blue-green-red: 'FF0000' (red) becomes '&H000000FF'."""
     r, g, b = rrggbb[0:2], rrggbb[2:4], rrggbb[4:6]
     return f"&H00{b}{g}{r}".upper()
 
-def group_words(words, n):
+def clean_word(word, remove_punctuation):
+    """Trim spaces, and optionally punctuation at the edges of the word."""
+    word = word.strip()
+    return word.strip(PUNCTUATION) if remove_punctuation else word
+
+def group_words(words, n, remove_punctuation=False):
     """technically independent but we using captions.py:all_words"""
+    cleaned = [(w.start, w.end, clean_word(w.word, remove_punctuation)) for w in words]
+    cleaned = [c for c in cleaned if c[2]]
     captions = []
-    for i in range(0, len(words), n):
-        chunk = words[i:i + n]
-        text = " ".join(w.word.strip() for w in chunk)
-        captions.append((chunk[0].start, chunk[-1].end, text))
+    for i in range(0, len(cleaned), n):
+        chunk = cleaned[i:i + n]
+        captions.append((chunk[0][0], chunk[-1][1], " ".join(text for _, _, text in chunk)))
     return captions
 
 def get_resolution(video_path):
@@ -60,7 +69,6 @@ def get_resolution(video_path):
     ).stdout
     width, height = out.strip().split(",")[:2]
     return int(width), int(height)
-
 #---------------------------main work------------------------------------------
 
 def build_ass(captions, style, width, height):
@@ -95,3 +103,16 @@ def build_ass(captions, style, width, height):
             text = text.upper()
         lines.append(f"Dialogue: 0,{ass_time(start)},{ass_time(end)},Default,,0,0,0,,{effect}{text}")
     return header + "\n".join(lines) + "\n"
+
+def burn_ass(video_path, ass_path, out_path):
+    """Draw the styled captions onto the video itself."""
+    video_path, ass_path, out_path = (os.path.abspath(p) for p in (video_path, ass_path, out_path))
+    subprocess.run(
+        ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", video_path,
+         "-vf", f"subtitles={os.path.basename(ass_path)}",
+         "-c:v", "libx264", "-preset", "veryfast", 
+         "-crf", "23",
+         "-c:a", "aac",
+         out_path],
+         check=True, cwd=os.path.dirname(ass_path), # i hate windows, if you are a microsoft recruiter, ignore comment
+    )

@@ -1,12 +1,19 @@
 """Transcribe speech and write"""
-import os
-import subprocess
 
-def transcribe(path, model_size="small", language=None, words=False):
+def transcribe(path, model_size="medium", language=None, words=False):
     """Return (segments, detected_language) using faster-whisper on the CPU."""
     from faster_whisper import WhisperModel
     model = WhisperModel(model_size, device="cpu", compute_type="int8")
-    segments, info = model.transcribe(path, language=language, vad_filter=True, word_timestamps=words)
+    segments, info = model.transcribe(
+        path,
+        language=language,
+        vad_filter=True,
+        vad_parameters=dict(
+            speech_pad_ms=100,           # was 400: less padding added before speech
+            min_silence_duration_ms=500, # was 2000: split at pauses of half a second
+        ),
+        word_timestamps=words,
+)
     return list(segments), info.language
 
 def format_timestamp(seconds):
@@ -29,16 +36,3 @@ def write_srt(segments, srt_path):
 def all_words(segments):
     """Flatten the per-segment words into one list (need words = True)"""
     return [w for seg in segments for w in seg.words]
-
-def burn_ass(video_path, ass_path, out_path):
-    """Draw the styled captions onto the video itself."""
-    video_path, ass_path, out_path = (os.path.abspath(p) for p in (video_path, ass_path, out_path))
-    subprocess.run(
-        ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", video_path,
-         "-vf", f"subtitles={os.path.basename(ass_path)}",
-         "-c:v", "libx264", "-preset", "veryfast", 
-         "-crf", "23",
-         "-c:a", "aac",
-         out_path],
-         check=True, cwd=os.path.dirname(ass_path), # i hate windows, if you are a microsoft recruiter, ignore comment
-    )

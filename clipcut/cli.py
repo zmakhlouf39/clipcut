@@ -6,8 +6,8 @@ import sys
 from pathlib import Path
 
 from clipcut.silence import get_duration, detect_silences ,keep_segments, cut_video
-from clipcut.captions import transcribe, write_srt, all_words, burn_ass
-from clipcut.styled import Style, build_ass, group_words, get_resolution
+from clipcut.captions import transcribe, write_srt, all_words
+from clipcut.styled import Style, build_ass, group_words, get_resolution, burn_ass
 
 def build_parser():
     
@@ -33,6 +33,7 @@ def build_parser():
     p.add_argument("--color", default="FFFFFF", help="RRGGBB")
     p.add_argument("--animation", default="pop", choices=["none", "fade", "pop", "bounce"])
     p.add_argument("--position", default="middle", choices=["top", "middle", "bottom"])
+    p.add_argument("--remove_punctuation", default=False, help="keep or remove punctuation")
     return p
 
 
@@ -64,21 +65,21 @@ def main(argv=None):
 
     if args.captions:
         print("Transcribing (the first run downloads the model, about 500 MB)...")
-        captions, language = transcribe(current, args.model, args.lang, words=True)
-        if not captions:
+        segments, language = transcribe(current, args.model, args.lang, words=True)
+        if not segments:
             sys.exit("Error: no speech found, no captions to write.")
         
-        style = Style(font=args.font, size=args.size, color=args.color, words_per_caption=args.words, animation=args.animation, position=args.position)
-        words = all_words(captions)
+        style = Style(font=args.font, size=args.size, color=args.color, words_per_caption=args.words, animation=args.animation, position=args.position, remove_punctuation=args.remove_punctuation)
+        words = all_words(segments)
         w, h = get_resolution(output)
         
         ass_path = os.path.splitext(output)[0] + ".ass"
-        Path(ass_path).write_text(build_ass(group_words(words , style.words_per_caption), style, w, h), encoding="utf-8")
+        Path(ass_path).write_text(build_ass(group_words(words , style.words_per_caption, args.remove_punctuation), style, w, h), encoding="utf-8")
         burn_ass(output, ass_path, os.path.splitext(output)[0] + "_captioned.mp4")
         
         srt_path = os.path.splitext(output)[0] + ".srt"    
-        write_srt(captions, srt_path)
-        print(f"Wrote {len(captions)} captions ({language}) to {srt_path}")
+        write_srt(segments, srt_path)
+        print(f"Wrote {len(segments)} captions ({language}) to {srt_path}")
 
     print("Done.")
 
